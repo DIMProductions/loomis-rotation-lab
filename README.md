@@ -92,7 +92,7 @@ loomis-rotation-lab/
 
 ├── source/
 
-│   └── loomis_source.svg
+│   └── loomis\_source.svg
 
 └── README.md
 
@@ -150,15 +150,11 @@ Open: `http://127.0.0.1:5500/`
 
 For collaboration, technical inquiries, or licensing:
 
-\*\*\[info@dim.productions]\*\*
-
-
+\\\*\\\*\\\[info@dim.productions]\\\*\\\*
 
 ---
 
 
 
 © 2026 DIMProductions
-
-
 
