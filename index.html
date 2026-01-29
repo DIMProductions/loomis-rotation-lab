@@ -8,7 +8,7 @@
     :root{
       --bg:#0f1115; --ui:#151a22; --ui2:#10141c; --line:#2a3140;
       --text:#e8ecf2; --muted:#9aa4b2; --accent:#00d0ff; --danger:#ff4444;
-      --canvas:#ffffff; /* ★修正: 純白に変更 */
+      --canvas:#ffffff;
     }
     *{box-sizing:border-box}
     body{
@@ -31,8 +31,8 @@
 
     /* Layout */
     .main{ height:calc(100vh - 54px); display:grid; grid-template-columns: 240px 1fr 260px; gap:12px; padding:12px; }
-    .panel{ background:var(--ui); border:1px solid var(--line); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px; min-height:0; }
-    .panel h3{ margin:0 0 4px; font-size:12px; color:var(--muted); letter-spacing:0.2px; border-bottom:1px solid #222; padding-bottom:4px; }
+    .panel{ background:var(--ui); border:1px solid var(--line); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px; min-height:0; overflow-y:auto; }
+    .panel h3{ margin:0 0 4px; font-size:12px; color:var(--muted); letter-spacing:0.2px; border-bottom:1px solid #222; padding-bottom:4px; display:flex; justify-content:space-between; align-items:center; }
     
     .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .btn{ border:1px solid var(--line); background:var(--ui2); color:var(--text); padding:8px 10px; border-radius:12px; font-size:12px; cursor:pointer; user-select:none; text-align:center; flex:1; transition:0.1s; }
@@ -45,6 +45,12 @@
 
     label{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:6px; }
     input[type="range"]{ width:100%; margin:4px 0; }
+
+    /* Toggle Switch */
+    .toggle { appearance:none; width:28px; height:16px; background:#222; border-radius:10px; border:1px solid #444; position:relative; outline:none; cursor:pointer; vertical-align:middle; }
+    .toggle::after { content:''; position:absolute; top:1px; left:1px; width:12px; height:12px; background:#666; border-radius:50%; transition:0.2s; }
+    .toggle:checked { background:var(--accent); border-color:var(--accent); }
+    .toggle:checked::after { left:13px; background:#000; }
 
     /* Tab Slots */
     .tabSlot{ display:none; }
@@ -65,9 +71,8 @@
       z-index: 0;
       opacity: 0.5;
       pointer-events: none;
-      width: 500px; height: 500px;
-      transform-origin: center center;
-      /* ★修正: 初期状態は非表示（DRAWモード開始のため） */
+      width: 151px; 
+      height: 181px;
       display: none; 
     }
 
@@ -76,6 +81,7 @@
       position: absolute;
       top: 0; left: 0;
       transform-origin: 0 0;
+      will-change: transform;
     }
 
     canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index: 10; }
@@ -94,15 +100,18 @@
 </head>
 
 <body>
-  <div class="topbar">
+<div class="topbar">
+  <a href="https://dim.productions/" target="_blank" style="display:flex; align-items:center; text-decoration:none; gap:10px;">
+    <img src="source/dimplogo.svg" alt="DIM Logo" style="height:32px; width:auto;">
+  </a>
+
+  <div class="tabs">
     <div class="brand">Loomis Rotation Lab</div>
-    <div class="tabs">
-      <div class="tab on" data-tab="draw">DRAW</div>
-      <div class="tab" data-tab="trace">TRACE</div>
-      <div class="tab" data-tab="export">EXPORT</div>
-    </div>
-    <div class="status" id="status">Ready</div>
+    <div class="tab on" data-tab="draw">DRAW</div>
+    <div class="tab" data-tab="export">EXPORT</div>
   </div>
+  <div class="status" id="status">Ready</div>
+</div>
 
   <div class="main">
     <div class="panel">
@@ -112,6 +121,10 @@
         <div class="row">
           <div class="btn active" id="toolPen">G-Pen</div>
           <div class="btn" id="toolEraser">Eraser</div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <div class="btn small" id="btnUndo">↶ Undo</div>
+            <div class="btn small" id="btnRedo">↷ Redo</div>
         </div>
         
         <div class="sep"></div>
@@ -124,14 +137,12 @@
         <input id="penPress" type="range" min="0" max="1" value="0.8" step="0.05">
         <label>Smooth <span id="vSmooth">0.4</span></label>
         <input id="penSmooth" type="range" min="0" max="0.95" value="0.4" step="0.05">
-        
-        <div class="sep"></div>
-        <div class="btn danger" id="btnClearActive">Clear Layer</div>
-      </div>
 
-      <div id="slot-trace" class="tabSlot">
-        <h3>MATRIX CONTROLLER</h3>
-        <div class="hint">Source: <b>source/loomis_source.svg</b></div>
+        <div class="sep"></div>
+        <h3>
+            REFERENCE
+            <input type="checkbox" id="refToggle" class="toggle" checked title="Toggle Reference ON/OFF">
+        </h3>
         
         <label>Yaw (Rotate) <span id="vYaw">0°</span></label>
         <input id="traceYaw" type="range" min="-4" max="4" step="1" value="0">
@@ -139,20 +150,14 @@
         <label>Pitch (Tilt) <span id="vPitch">0°</span></label>
         <input id="tracePitch" type="range" min="-3" max="3" step="1" value="0">
 
-        <div class="sep"></div>
-        <h3>REF SETTINGS</h3>
-        
-        <label>Zoom <span id="vRefZoom">1.0</span></label>
-        <input id="refZoom" type="range" min="0.2" max="3.0" step="0.05" value="1.0">
+        <label>Zoom <span id="vRefZoom">5.0</span></label>
+        <input id="refZoom" type="range" min="0.5" max="8.0" step="0.1" value="5.0">
         
         <label>Opacity <span id="vRefOp">0.5</span></label>
         <input id="refOp" type="range" min="0" max="1" step="0.05" value="0.5">
-        
+
         <div class="sep"></div>
-        <label>Offset X</label>
-        <input id="refOffX" type="range" min="-250" max="250" value="0">
-        <label>Offset Y</label>
-        <input id="refOffY" type="range" min="-250" max="250" value="0">
+        <div class="btn danger" id="btnClearActive">Clear Layer</div>
       </div>
 
       <div id="slot-export" class="tabSlot">
@@ -192,20 +197,14 @@
 (() => {
   // --- UI TABS ---
   const tabs = document.querySelectorAll('.tab');
-  const slots = { draw:document.getElementById('slot-draw'), trace:document.getElementById('slot-trace'), export:document.getElementById('slot-export') };
-  const refContainer = document.getElementById('refContainer');
+  const slots = { draw:document.getElementById('slot-draw'), export:document.getElementById('slot-export') };
+  const refContainer = document.getElementById('refContainer'); 
 
   function setTab(m){
     tabs.forEach(t=>t.classList.toggle('on', t.dataset.tab===m));
     Object.values(slots).forEach(e=>e.classList.remove('on'));
     if(slots[m]) slots[m].classList.add('on');
-
-    // ★修正: DRAW/EXPORTモードでは参照画像を消す (TRACEモードのみ表示)
-    if(m === 'trace'){
-      refContainer.style.display = 'block';
-    } else {
-      refContainer.style.display = 'none';
-    }
+    // Trace logic is now controlled by switch, not tab
   }
   tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.tab)));
 
@@ -218,6 +217,7 @@
     cComp.width = cInput.width = Math.floor(r.width);
     cComp.height = cInput.height = Math.floor(r.height);
     ensureLayerSize(); redrawComposite();
+    history = []; historyStep = -1; 
   }
   window.addEventListener('resize', resize);
 
@@ -270,6 +270,42 @@
     if(layers[activeIdx]){ const op=layers[activeIdx].opacity; document.getElementById('layerOpacity').value=op; document.getElementById('vLayerOp').innerText=op.toFixed(2); }
   }
 
+  // --- UNDO / REDO SYSTEM ---
+  let history = [];
+  let historyStep = -1;
+  const MAX_HISTORY = 20;
+  let strokeStartData = null; 
+
+  function recordHistory(oldData, newData, lIdx){
+    if(historyStep < history.length - 1){ history = history.slice(0, historyStep + 1); }
+    history.push({ layerIdx: lIdx, before: oldData, after: newData });
+    if(history.length > MAX_HISTORY) history.shift(); else historyStep++;
+    updateUndoUI();
+  }
+  function performUndo(){
+    if(historyStep < 0) return;
+    const action = history[historyStep];
+    if(layers[action.layerIdx]){ layers[action.layerIdx].ctx.putImageData(action.before, 0, 0); redrawComposite(); }
+    historyStep--; updateUndoUI();
+  }
+  function performRedo(){
+    if(historyStep >= history.length - 1) return;
+    historyStep++;
+    const action = history[historyStep];
+    if(layers[action.layerIdx]){ layers[action.layerIdx].ctx.putImageData(action.after, 0, 0); redrawComposite(); }
+    updateUndoUI();
+  }
+  function updateUndoUI(){
+    document.getElementById('btnUndo').style.opacity = historyStep >= 0 ? '1' : '0.5';
+    document.getElementById('btnRedo').style.opacity = historyStep < history.length - 1 ? '1' : '0.5';
+  }
+  document.getElementById('btnUndo').onclick = performUndo;
+  document.getElementById('btnRedo').onclick = performRedo;
+  window.addEventListener('keydown', e => {
+    if((e.ctrlKey || e.metaKey) && e.key === 'z'){ e.preventDefault(); e.shiftKey ? performRedo() : performUndo(); }
+    if((e.ctrlKey || e.metaKey) && e.key === 'y'){ e.preventDefault(); performRedo(); }
+  });
+
   // --- PEN ENGINE ---
   let drawing=false, pts=[]; let toolType = 'pen';
   const penSettings = { size:4, press:0.8, smooth:0.4, taper:0.5 };
@@ -297,6 +333,7 @@
 
   cInput.addEventListener('pointerdown', e=>{
     if(!layers[activeIdx].visible) return; drawing=true; cInput.setPointerCapture(e.pointerId); pts=[{x:e.offsetX, y:e.offsetY, p:e.pressure||0.5}];
+    const ctx = layers[activeIdx].ctx; strokeStartData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height);
   });
   cInput.addEventListener('pointermove', e=>{
     if(!drawing) return; const raw={x:e.offsetX, y:e.offsetY, p:e.pressure||0.5};
@@ -309,6 +346,7 @@
     ctx.globalCompositeOperation = (toolType === 'eraser') ? 'destination-out' : 'source-over';
     drawStroke(ctx, pts); ctx.globalCompositeOperation = 'source-over';
     gInput.clearRect(0,0,cInput.width,cInput.height); pts=[]; redrawComposite();
+    if(strokeStartData){ recordHistory(strokeStartData, ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height), activeIdx); strokeStartData = null; }
   };
   cInput.addEventListener('pointerup', endStroke);
 
@@ -340,7 +378,11 @@
     layers.splice(activeIdx,0,{name:src.name+' copy', visible:src.visible, opacity:src.opacity, canvas:c, ctx:c.getContext('2d')});
     updateLayerUI();
   };
-  document.getElementById('btnClearActive').onclick=()=>{ layers[activeIdx].ctx.clearRect(0,0,cComp.width,cComp.height); redrawComposite(); };
+  document.getElementById('btnClearActive').onclick=()=>{ 
+      const ctx = layers[activeIdx].ctx; const oldD = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height);
+      ctx.clearRect(0,0,cComp.width,cComp.height); redrawComposite(); 
+      recordHistory(oldD, ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height), activeIdx);
+  };
   document.getElementById('layerOpacity').oninput=(e)=>{ if(layers[activeIdx]){ layers[activeIdx].opacity=+e.target.value; document.getElementById('vLayerOp').innerText=layers[activeIdx].opacity.toFixed(2); redrawComposite(); } };
   document.getElementById('btnExportPNG').onclick=()=>{
     const c=makeCanvas(cComp.width,cComp.height), x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height);
@@ -348,58 +390,57 @@
     const a=document.createElement('a'); a.download='art.png'; a.href=c.toDataURL(); a.click();
   };
 
-  // --- MATRIX TRACE LOGIC ---
+  // --- MATRIX TRACE LOGIC (MERGED) ---
   const refImage = document.getElementById('refImage');
-  // Controls
+  const uiToggle = document.getElementById('refToggle');
   const uiYaw = document.getElementById('traceYaw');
   const uiPitch = document.getElementById('tracePitch');
   const uiZoom = document.getElementById('refZoom');
   const uiOp = document.getElementById('refOp');
-  const uiOffX = document.getElementById('refOffX');
-  const uiOffY = document.getElementById('refOffY');
 
-  // Config
-  const CELL_W = 500;
-  const CELL_H = 500;
+  // Head 0,0 Center = (122, 145), CELL W = 150.6, CELL H = 180.7
+  const START_CX = 122; const START_CY = 145;
+  const CELL_W = 150.6; const CELL_H = 180.7; 
+  const CONTAINER_CW = 75.5; const CONTAINER_CH = 90.5; 
 
   function updateMatrixView(){
+    // Master Toggle Check
+    if(!uiToggle.checked){
+        refContainer.style.display = 'none';
+        return;
+    }
+    refContainer.style.display = 'block';
+
     const yawVal = parseInt(uiYaw.value);
     const pitchVal = parseInt(uiPitch.value);
     const zoomVal = parseFloat(uiZoom.value);
     const opVal = parseFloat(uiOp.value);
-    const offX = parseInt(uiOffX.value);
-    const offY = parseInt(uiOffY.value);
-
-    // Labels
-    document.getElementById('vYaw').innerText = (yawVal * 15) + "°";
+    
+    document.getElementById('vYaw').innerText = (yawVal * 22.5) + "°";
     document.getElementById('vPitch').innerText = (pitchVal * 15) + "°";
     document.getElementById('vRefZoom').innerText = zoomVal.toFixed(2);
     document.getElementById('vRefOp').innerText = opVal.toFixed(2);
 
-    // Opacity
     refContainer.style.opacity = opVal;
-
-    // Zoom & Container Size
     refContainer.style.transform = `translate(-50%, -50%) scale(${zoomVal})`;
 
-    // Sprite Shift Logic
-    const col = yawVal + 4; 
-    const row = 3 - pitchVal; 
-    const targetX = -1 * (col * CELL_W) + offX;
-    const targetY = -1 * (row * CELL_H) + offY;
+    const col = yawVal + 4; const row = 3 - pitchVal; 
+    const cx = START_CX + col * CELL_W; const cy = START_CY + row * CELL_H;
+    const targetX = CONTAINER_CW - cx; const targetY = CONTAINER_CH - cy;
 
     refImage.style.transform = `translate(${targetX}px, ${targetY}px)`;
   }
 
-  [uiYaw, uiPitch, uiZoom, uiOp, uiOffX, uiOffY].forEach(el => {
+  [uiToggle, uiYaw, uiPitch, uiZoom, uiOp].forEach(el => {
     el.addEventListener('input', updateMatrixView);
+    el.addEventListener('change', updateMatrixView); // For checkbox
   });
 
   // Init
-  resize(); addLayer("Line Art");
+  resize(); 
+  addLayer("Line Art");
   updateMatrixView();
-  // ★重要: 初期状態はDRAWモードなのでリファレンスは非表示にする
-  setTab('draw');
+  setTab('draw'); 
 
 })();
 </script>
