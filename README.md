@@ -1,4 +1,4 @@
-# 🎛️ Loomis Rotation Lab v0.1 // TRACE PRACTICE RIG
+# 🎛️ AnimX // TRACE PRACTICE RIG
 
 A lightweight **browser-based Loomis head rotation practice tool**.
 Right now it’s not a “smart teacher” — it’s a **trace-mode lab** with stripe guides so you can grind rotations fast.
@@ -32,7 +32,7 @@ Stop expecting magic — this is a practice rig first.
 
 ## 🎮 Live Demo
 
-👉 **https://loomis-rotation-lab.dim.productions/**
+👉 **https://animx.dim.productions/**
 
 Hosting serves static assets only. Everything runs in your browser.
 
@@ -83,5 +83,6 @@ For collaboration, technical inquiries, or licensing:
 info@dim.productions
 
 ---
+
 
 © 2026 DIMProductions.
